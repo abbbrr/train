@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel</title>
+     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+     <script src="{{ url_for('static', filename='script.js') }}"></script>
+</head>
+<body>
+
+    <div class="popup-container" id="popup-container">
+            <div class="popup" id="popup">
+                <span class="close-button" onclick="closePopup()">✖</span>
+                <div class="flex_dance">
+                   <div class="cansel" id="cancel" >
+                        <button id="cancelButton">Отменить рейс</button>
+                        <div id="result"></div>
+                    </div>
+                    <div class="delay" id="delay">
+                        <p>Введите время задержки (минуты):</p>
+                        <input type="number" id="delayInput" placeholder="Время задержки (минуты)">
+                        <button id="sendDelayButton">Отправить задержку</button>
+                        <div id="delayResult"></div>
+                    </div>
+                </div>
+            </div>
+    </div>
+
+  <header>
+        <div class="nav_bar">
+            <div class="search_ticket">
+                <input type="text" placeholder="Search">
+            </div>
+            <div class="user_profile">
+               <h3>abr@gmail.com</h3>
+               <form action="{{ url_for('admin.logout_admin') }}" method="POST">
+                    <button type="submit">Logout</button>
+               </form>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="list_tickets">
+            <div class="first_id_text">
+                <h3>ID Рейса</h3>
+                <h3 class="naprav">Направление Рейса</h3>
+                <h3>Трек-Номер</h3>
+            </div>
+            <div class="list">
+                {% for ticket in tickets %}
+                    <div class="first_ticket" id="flightSelect" onclick="toggleCard(this)" data-train-number="{{ ticket.track_number }}">
+                        <option class="ticket" value=" {{ ticket.track_number }} {{ ticket.route }}" >
+                          {{ ticket.track_number }} {{ ticket.route }}
+                        </option>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </main>
+
+<script src="https://cdn.socket.io/4.6.0/socket.io.min.js" integrity="sha384-c79GN5VsunZvi+Q/WObgk2in0CbZsHnjEqvFxC5DxHn9lTfNce2WW6h2pH6u/kF+" crossorigin="anonymous"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var socket = io.connect('http://' + document.domain + ':' + location.port);
+
+            var flightSelect = document.getElementById('flightSelect');
+            flightSelect.addEventListener('change', function() {
+                var selectedFlight = flightSelect.value;
+                var selectedTicketElement = document.getElementById('selectedTicket');
+                selectedTicketElement.textContent = 'Выбранный билет: ' + selectedFlight;
+
+
+            });
+
+            socket.on('connect', function() {
+                console.log('Connected to the server!');
+            });
+
+            // Check if the element with id 'cancelButton' exists
+            var cancelButton = document.getElementById('cancelButton');
+                if (cancelButton) {
+                    cancelButton.addEventListener('click', function(){
+                        var selectedFlight = document.querySelector('.first_ticket.selected');
+                        if (selectedFlight) {
+                            var flightDetails = selectedFlight.textContent.trim();
+                            socket.emit('cancel_flight', flightDetails);
+                            console.log(flightDetails);
+                        } else {
+                            console.error('Please select a flight before canceling.');
+                        }
+                    });
+                } else {
+                    console.error('Element with id "cancelButton" not found.');
+                }
+
+            socket.on('flight_canceled', function(message){
+                document.getElementById('result').textContent = message;
+            });
+
+            socket.on('delay_message', function(message){
+                document.getElementById('delayResult').textContent = message;
+            });
+
+            var sendDelayButton = document.getElementById('sendDelayButton');
+                if (sendDelayButton) {
+                    sendDelayButton.addEventListener('click', function(){
+                        var trainSelect = document.querySelector('.first_ticket.selected');
+                        var selectedTrain = trainSelect.dataset.trainNumber;
+                        var delayMinutes = document.getElementById('delayInput').value;
+
+                        if (selectedTrain && delayMinutes) {
+                           socket.emit('train_delay', {'train_number': selectedTrain, 'delay_minutes': delayMinutes});
+                           console.log(`${delayMinutes} : ${selectedTrain}`)
+                        } else {
+                            console.error('Please select a train and enter delay minutes');
+                        }
+                    });
+                } else {
+                    console.error('Element with id "sendDelayButton" not found.');
+                }
+        });
+    </script>
+
+</body>
+</html>

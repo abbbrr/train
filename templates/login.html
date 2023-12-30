@@ -1,0 +1,51 @@
+<!-- templates/login.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+</head>
+<body>
+    <h2>Login</h2>
+    <form id="loginForm">
+        <label for="username">Username:</label>
+        <input type="text" name="username" required>
+        <br>
+        <label for="password">Password:</label>
+        <input type="password" name="password" required>
+        <br>
+        <button type="button" onclick="submitForm()">Login</button>
+    </form>
+
+    <script>
+        function submitForm() {
+            var formData = {
+                "username": document.getElementsByName("username")[0].value,
+                "password": document.getElementsByName("password")[0].value
+            };
+
+            fetch("{{ url_for('admin.login_admin') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => {
+                // Check if the response status is a redirect (status code 300-399)
+                if (response.redirected) {
+                    window.location.href = response.url; // Redirect to the new URL
+                } else {
+                    return response.json(); // Continue processing the JSON response
+                }
+            })
+            .then(data => {
+                // Handle the JSON response
+                console.log(data);
+            })
+            .catch(error => console.error('Error:', error));
+        }
+    </script>
+</body>
+</html>
